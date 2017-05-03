@@ -23,7 +23,7 @@ UKF::UKF() {
 
   // initial state vector
   x_ = VectorXd(5);
-  x_.fill(0.0);
+  x_.fill(0.5);
 
   // initial covariance matrix
   P_ = MatrixXd(5, 5);
@@ -88,6 +88,10 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
+  // initialize px and py
+  x_(0) = meas_package.raw_measurements_(0);
+  x_(1) = meas_package.raw_measurements_(1);
+
   // find delta_t
   double delta_t = meas_package.timestamp_ - time_us_;
   time_us_ = meas_package.timestamp_;
