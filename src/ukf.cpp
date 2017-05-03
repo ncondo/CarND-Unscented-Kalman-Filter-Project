@@ -75,6 +75,10 @@ UKF::UKF() {
   // set initial timestamp to zero
   time_us_ = 0;
 
+  // set initial NIS to zero
+  NIS_radar_ = 0.0;
+  NIS_laser_ = 0.0;
+
 }
 
 UKF::~UKF() {}
@@ -84,12 +88,6 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  /**
-  TODO:
-
-  Complete this function! Make sure you switch between lidar and radar
-  measurements.
-  */
   // find delta_t
   double delta_t = meas_package.timestamp_ - time_us_;
   time_us_ = meas_package.timestamp_;
@@ -98,11 +96,11 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Prediction(delta_t);
 
   if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
-    // call UpdateRadar func
+    // call UpdateRadar if radar data
     UpdateRadar(meas_package);
   }
   else {
-    // call UpdateLidar
+    // call UpdateLidar if lidar data
     UpdateLidar(meas_package);
   }
 
@@ -323,4 +321,9 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   // update state mean and covariance matrix
   x_ = x_ + K * z_diff;
   P_ = P_ - K * S * K.transpose();
+
+  // calculate NIS
+  NIS_radar_ = z_diff.transpose() * S.inverse() * z_diff;
+
 }
+
