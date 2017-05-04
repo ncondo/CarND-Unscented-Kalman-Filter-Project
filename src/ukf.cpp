@@ -15,6 +15,9 @@ using std::vector;
  * Initializes Unscented Kalman filter
  */
 UKF::UKF() {
+  // initially set to false, set to true in first call of ProcessMeasurement
+  is_initialized_ = false;
+
   // if this is false, laser measurements will be ignored (except during init)
   use_laser_ = true;
 
@@ -23,7 +26,7 @@ UKF::UKF() {
 
   // initial state vector
   x_ = VectorXd(5);
-  x_.fill(0.5);
+  x_.fill(0.0);
 
   // initial covariance matrix
   P_ = MatrixXd(5, 5);
@@ -88,24 +91,61 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  // initialize px and py
-  x_(0) = meas_package.raw_measurements_(0);
-  x_(1) = meas_package.raw_measurements_(1);
 
-  // find delta_t
-  double delta_t = meas_package.timestamp_ - time_us_;
+  // check if first call
+  if (!is_initialized_) {
+    // check if measurement is radar or lidar
+    if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+      // convert from polar to cartesian to initialize state
+      float ro = meas_package.raw_measurements_(0);
+      float phi = meas_package.raw_measurements_(1);
+      float ro_dot = meas_package.raw_measurements_(2);
+      x_(0) = ro * cos(phi);
+      x_(1) = ro * sin(phi);
+      x_(2) = ro_dot;
+      x_(3) = phi;
+      x_(4) = 0;
+      // mark as initialized
+      is_initialized_ = true;
+    }
+    else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+      // initialize state
+      x_(0) = meas_package.raw_measurements_(0);
+      x_(1) = meas_package.raw_measurements_(1);
+      x_(2) = 0;
+      x_(3) = 0;
+      x_(4) = 0;
+      // mark as initialized
+      is_initialized_ = true;
+    }
+
+    // save initial timestamp
+    time_us_ = meas_package.timestamp_;
+
+    // done initializing, no need to predict or update
+    return;
+  }
+
+  // find delta_t in seconds
+  double delta_t = (meas_package.timestamp_ - time_us_) / 1000000.0;
   time_us_ = meas_package.timestamp_;
 
   // call Prediction func with calculated delta_t
   Prediction(delta_t);
 
   if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
-    // call UpdateRadar if radar data
-    UpdateRadar(meas_package);
+    // check if use_radar is set to true
+    if (use_radar_) {
+      // call UpdateRadar if radar data
+      UpdateRadar(meas_package);
+    }
   }
-  else {
-    // call UpdateLidar if lidar data
-    UpdateLidar(meas_package);
+  else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+    // check if use_laser is set to true
+    if (use_laser_) {
+      // call UpdateLidar if lidar data
+      UpdateLidar(meas_package);
+    }
   }
 
 }
