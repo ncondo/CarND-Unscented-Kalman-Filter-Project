@@ -91,7 +91,6 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-
   // check if first call
   if (!is_initialized_) {
     // check if measurement is radar or lidar
@@ -156,7 +155,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
  * measurement and this one.
  */
 void UKF::Prediction(double delta_t) {
-
   // create augmented mean vector
   VectorXd x_aug = VectorXd(n_aug_);
   x_aug.head(5) = x_;
